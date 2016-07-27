@@ -13,9 +13,11 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
 import my.entity.Request;
+import my.entity.RequestFacade;
 import my.entity.Response;
+import my.entity.ResponseFacade;
 
-public class ServletProcessor {
+public class ServletProcessor2 {
 
 	public void process(Request request, Response response) {
 		String uri = request.getUri();
@@ -42,9 +44,11 @@ public class ServletProcessor {
 			e.printStackTrace();
 		}
 		Servlet servlet = null;
+		RequestFacade requestFacade = new RequestFacade(request);
+		ResponseFacade responseFacade = new ResponseFacade(response);
 		try {
 			servlet = (Servlet) myclass.newInstance();
-			servlet.service((ServletRequest) request, (ServletResponse) response);
+			servlet.service((ServletRequest) requestFacade, (ServletResponse) responseFacade);
 		}catch(IOException e) {
 			e.printStackTrace();
 		} catch (ServletException e) {
