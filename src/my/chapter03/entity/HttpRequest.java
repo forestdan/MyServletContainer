@@ -32,6 +32,12 @@ import my.chapter03.connector.SocketInputStream;
 
 public class HttpRequest implements HttpServletRequest{
 
+	private String requestURI;
+	private String method;
+	private String protocol;
+	private String requestedSessionId;
+	private boolean requestedSessionURL;
+	
 	protected HashMap<Object, Object> headers = new HashMap<>();
 	
 	protected ArrayList<Object> cookies = new ArrayList<>();
@@ -43,6 +49,30 @@ public class HttpRequest implements HttpServletRequest{
 	
 	private SocketInputStream socketInputStream;
 	
+	public void setRequestURI(String requestURI) {
+		this.requestURI = requestURI;
+	}
+	
+	public void setMethod(String method) {
+		this.method = method;
+	}
+
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
+	}
+
+	public boolean isRequestedSessionURL() {
+		return requestedSessionURL;
+	}
+
+	public void setRequestedSessionURL(boolean requestedSessionURL) {
+		this.requestedSessionURL = requestedSessionURL;
+	}
+
+	public void setRequestedSessionId(String requestedSessionId) {
+		this.requestedSessionId = requestedSessionId;
+	}
+
 	public void setQueryString(String queryString) {
 		this.queryString = queryString;
 	}
@@ -161,8 +191,7 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getProtocol() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.protocol;
 	}
 
 	@Override
@@ -335,8 +364,7 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getMethod() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.method;
 	}
 
 	@Override
@@ -365,8 +393,7 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getQueryString() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.queryString;
 	}
 
 	@Override
@@ -377,20 +404,17 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getRequestURI() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.requestURI;
 	}
 
 	@Override
 	public StringBuffer getRequestURL() {
-		// TODO Auto-generated method stub
-		return null;
+		return new StringBuffer(this.requestURI);
 	}
 
 	@Override
 	public String getRequestedSessionId() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.requestedSessionId;
 	}
 
 	@Override

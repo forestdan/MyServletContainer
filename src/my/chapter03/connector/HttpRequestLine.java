@@ -2,37 +2,58 @@ package my.chapter03.connector;
 
 /**
  * 请求第一行
+ * 
  * @author Administrator
  *
  */
-public class HttpRequestLine {
+public final class HttpRequestLine {
 
-	//获取到的方法字节数组
-	private byte[] method;
-	//获取到的协议字节数组
-	private byte[] protocol;
-	//获取uri
-	private byte[] uri;
-	
-	public byte[] getMethod() {
-		return method;
+	public static final int INITIAL_METHOD_SIZE = 8;
+	public static final int INITIAL_URI_SIZE = 64;
+	public static final int INITIAL_PROTOCOL_SIZE = 8;
+	public static final int MAX_METHOD_SIZE = 1024;
+	public static final int MAX_URI_SIZE = 32768;
+	public static final int MAX_PROTOCOL_SIZE = 1024;
+
+	public char[] method;
+	public int methodEnd;
+	public char[] uri;
+	public int uriEnd;
+	public char[] protocol;
+	public int protocolEnd;
+
+	public HttpRequestLine() {
+		this(new char[INITIAL_METHOD_SIZE], 0, new char[INITIAL_URI_SIZE], 0, new char[INITIAL_PROTOCOL_SIZE], 0);
+	}
+
+	public HttpRequestLine(char[] method, int methodEnd, char[] uri, int uriEnd, char[] protocol, int protocolEnd) {
+		this.method = method;
+		this.methodEnd = methodEnd;
+		this.uri = uri;
+		this.uriEnd = uriEnd;
+		this.protocol = protocol;
+		this.protocolEnd = protocolEnd;
 	}
 	
-	public byte[] getProtocol() {
-		return protocol;
-	}
-	
-	public byte[] getUri() {
-		return uri;
+	public int indexOf(char[] chars) {
+		return indexOf(chars.toString());
 	}
 	
 	public int indexOf(String str) {
-		for(int i = 0; i < str.length(); i++) {
-			//此处为自己实现的HttpRequestLine中的indexOf方法，目前只支持查找单个字符
-			if (uri[i] == str.getBytes()[0]) {
-				return i;
-			}
-		}
-		return -1;
+		String uriStr = uri.toString();
+		return uriStr.indexOf(str);
 	}
+	
+	/**
+    * Release all object references, and initialize instance variables, in
+    * preparation for reuse of this object.
+    * 回收内部数据
+    */
+   public void recycle() {
+
+       methodEnd = 0;
+       uriEnd = 0;
+       protocolEnd = 0;
+
+   }
 }
