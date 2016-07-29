@@ -7,6 +7,7 @@ import java.net.Socket;
 import javax.servlet.ServletException;
 
 import my.chapter03.connector.HttpConnector;
+import my.chapter03.connector.HttpHeader;
 import my.chapter03.connector.HttpRequestLine;
 import my.chapter03.connector.SocketInputStream;
 import my.chapter03.entity.HttpRequest;
@@ -48,8 +49,38 @@ public class HttpProcessor {
 		}
 	}
 
-	private void parseHeaders(SocketInputStream is) {
-		// TODO parseHeaders实现解析请求
+	private void parseHeaders(SocketInputStream input) throws ServletException, IOException {
+		//一个循环读取一个head value对
+		while (true) {
+			HttpHeader header = new HttpHeader();
+			input.readHeader(header);
+			if (header.nameEnd == 0) {
+				if (header.valueEnd == 0) {
+					return;
+				} else {
+					throw new ServletException("httpProcessor.parseHeaders.colon");
+				}
+			}
+			
+			String name = new String(header.name, 0, header.nameEnd);
+			String value = new String(header.value, 0, header.valueEnd);
+			
+			request.addHeader(name, value);
+			
+			if (name.equals("cookie")) {
+				//TODO 填入处理cookie逻辑
+			} else if (name.equals("content-length")) {
+				int n = -1;
+				try {
+					n = Integer.parseInt(value);
+				}catch(NumberFormatException e) {
+					e.printStackTrace();
+				}
+				request.setContentLength(n);
+			} else if (name.equals("content-type")) {
+				request.setContentType(value);
+			}
+		}
 
 	}
 
@@ -93,7 +124,7 @@ public class HttpProcessor {
 			}
 		}
 
-		//处理保存在url中的sessionid
+		// 处理保存在url中的sessionid
 		String match = ";jsessionid=";
 		int semicolon = uri.indexOf(match);
 		if (semicolon >= 0) {
@@ -113,101 +144,94 @@ public class HttpProcessor {
 			request.setRequestedSessionURL(false);
 		}
 
-		//修正url中的不正确部分
+		// 修正url中的不正确部分
 		String normalizedUri = normalize(uri);
-		//把解析后的参数放入HttpRequest对象中
-	    ((HttpRequest) request).setMethod(method);
-	    request.setProtocol(protocol);
-	    if (normalizedUri != null) {
-	      ((HttpRequest) request).setRequestURI(normalizedUri);
-	    }
-	    else {
-	      ((HttpRequest) request).setRequestURI(uri);
-	    }
+		// 把解析后的参数放入HttpRequest对象中
+		((HttpRequest) request).setMethod(method);
+		request.setProtocol(protocol);
+		if (normalizedUri != null) {
+			((HttpRequest) request).setRequestURI(normalizedUri);
+		} else {
+			((HttpRequest) request).setRequestURI(uri);
+		}
 
-	    if (normalizedUri == null) {
-	      throw new ServletException("Invalid URI: " + uri + "'");
-	    }
+		if (normalizedUri == null) {
+			throw new ServletException("Invalid URI: " + uri + "'");
+		}
 	}
 
 	/**
-	   * Return a context-relative path, beginning with a "/", that represents
-	   * the canonical version of the specified path after ".." and "." elements
-	   * are resolved out.  If the specified path attempts to go outside the
-	   * boundaries of the current context (i.e. too many ".." path elements
-	   * are present), return <code>null</code> instead.
-	   *
-	   * @param path Path to be normalized
-	   */
-	  protected String normalize(String path) {
-	    if (path == null)
-	      return null;
-	    // Create a place for the normalized path
-	    String normalized = path;
+	 * Return a context-relative path, beginning with a "/", that represents the
+	 * canonical version of the specified path after ".." and "." elements are
+	 * resolved out. If the specified path attempts to go outside the boundaries
+	 * of the current context (i.e. too many ".." path elements are present),
+	 * return <code>null</code> instead.
+	 *
+	 * @param path
+	 *            Path to be normalized
+	 */
+	protected String normalize(String path) {
+		if (path == null)
+			return null;
+		// Create a place for the normalized path
+		String normalized = path;
 
-	    // Normalize "/%7E" and "/%7e" at the beginning to "/~"
-	    if (normalized.startsWith("/%7E") || normalized.startsWith("/%7e"))
-	      normalized = "/~" + normalized.substring(4);
+		// Normalize "/%7E" and "/%7e" at the beginning to "/~"
+		if (normalized.startsWith("/%7E") || normalized.startsWith("/%7e"))
+			normalized = "/~" + normalized.substring(4);
 
-	    // Prevent encoding '%', '/', '.' and '\', which are special reserved
-	    // characters
-	    if ((normalized.indexOf("%25") >= 0)
-	      || (normalized.indexOf("%2F") >= 0)
-	      || (normalized.indexOf("%2E") >= 0)
-	      || (normalized.indexOf("%5C") >= 0)
-	      || (normalized.indexOf("%2f") >= 0)
-	      || (normalized.indexOf("%2e") >= 0)
-	      || (normalized.indexOf("%5c") >= 0)) {
-	      return null;
-	    }
+		// Prevent encoding '%', '/', '.' and '\', which are special reserved
+		// characters
+		if ((normalized.indexOf("%25") >= 0) || (normalized.indexOf("%2F") >= 0) || (normalized.indexOf("%2E") >= 0)
+				|| (normalized.indexOf("%5C") >= 0) || (normalized.indexOf("%2f") >= 0)
+				|| (normalized.indexOf("%2e") >= 0) || (normalized.indexOf("%5c") >= 0)) {
+			return null;
+		}
 
-	    if (normalized.equals("/."))
-	      return "/";
+		if (normalized.equals("/."))
+			return "/";
 
-	    // Normalize the slashes and add leading slash if necessary
-	    if (normalized.indexOf('\\') >= 0)
-	      normalized = normalized.replace('\\', '/');
-	    if (!normalized.startsWith("/"))
-	      normalized = "/" + normalized;
+		// Normalize the slashes and add leading slash if necessary
+		if (normalized.indexOf('\\') >= 0)
+			normalized = normalized.replace('\\', '/');
+		if (!normalized.startsWith("/"))
+			normalized = "/" + normalized;
 
-	    // Resolve occurrences of "//" in the normalized path
-	    while (true) {
-	      int index = normalized.indexOf("//");
-	      if (index < 0)
-	        break;
-	      normalized = normalized.substring(0, index) +
-	        normalized.substring(index + 1);
-	    }
+		// Resolve occurrences of "//" in the normalized path
+		while (true) {
+			int index = normalized.indexOf("//");
+			if (index < 0)
+				break;
+			normalized = normalized.substring(0, index) + normalized.substring(index + 1);
+		}
 
-	    // Resolve occurrences of "/./" in the normalized path
-	    while (true) {
-	      int index = normalized.indexOf("/./");
-	      if (index < 0)
-	        break;
-	      normalized = normalized.substring(0, index) +
-	        normalized.substring(index + 2);
-	    }
+		// Resolve occurrences of "/./" in the normalized path
+		while (true) {
+			int index = normalized.indexOf("/./");
+			if (index < 0)
+				break;
+			normalized = normalized.substring(0, index) + normalized.substring(index + 2);
+		}
 
-	    // Resolve occurrences of "/../" in the normalized path
-	    while (true) {
-	      int index = normalized.indexOf("/../");
-	      if (index < 0)
-	        break;
-	      if (index == 0)
-	        return (null);  // Trying to go outside our context
-	      int index2 = normalized.lastIndexOf('/', index - 1);
-	      normalized = normalized.substring(0, index2) +
-	        normalized.substring(index + 3);
-	    }
+		// Resolve occurrences of "/../" in the normalized path
+		while (true) {
+			int index = normalized.indexOf("/../");
+			if (index < 0)
+				break;
+			if (index == 0)
+				return (null); // Trying to go outside our context
+			int index2 = normalized.lastIndexOf('/', index - 1);
+			normalized = normalized.substring(0, index2) + normalized.substring(index + 3);
+		}
 
-	    // Declare occurrences of "/..." (three or more dots) to be invalid
-	    // (on some Windows platforms this walks the directory tree!!!)
-	    if (normalized.indexOf("/...") >= 0)
-	      return (null);
+		// Declare occurrences of "/..." (three or more dots) to be invalid
+		// (on some Windows platforms this walks the directory tree!!!)
+		if (normalized.indexOf("/...") >= 0)
+			return (null);
 
-	    // Return the normalized path that we have completed
-	    return (normalized);
+		// Return the normalized path that we have completed
+		return (normalized);
 
-	  }
+	}
 
 }

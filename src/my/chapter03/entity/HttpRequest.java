@@ -32,6 +32,9 @@ import my.chapter03.connector.SocketInputStream;
 
 public class HttpRequest implements HttpServletRequest{
 
+	private int contentLength;
+	private String contentType;
+	
 	private String requestURI;
 	private String method;
 	private String protocol;
@@ -48,6 +51,26 @@ public class HttpRequest implements HttpServletRequest{
 	private String queryString;
 	
 	private SocketInputStream socketInputStream;
+	
+	public void addHeader(String name, String value) {
+		name = name.toLowerCase();
+		synchronized (headers) {
+			ArrayList<String> values = (ArrayList<String>) headers.get(name);
+			if (null == values) {
+				values = new ArrayList<String>();
+				headers.put(name, values);
+			}
+			values.add(value);
+		}
+	}
+	
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+	
+	public void setContentLength(int contentLength) {
+		this.contentLength = contentLength;
+	}
 	
 	public void setRequestURI(String requestURI) {
 		this.requestURI = requestURI;
@@ -107,8 +130,7 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public int getContentLength() {
-		// TODO Auto-generated method stub
-		return 0;
+		return contentLength;
 	}
 
 	@Override
@@ -119,8 +141,7 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getContentType() {
-		// TODO Auto-generated method stub
-		return null;
+		return contentType;
 	}
 
 	@Override
