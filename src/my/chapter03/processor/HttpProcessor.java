@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 
 import my.chapter03.connector.HttpConnector;
 import my.chapter03.connector.HttpHeader;
@@ -12,6 +13,7 @@ import my.chapter03.connector.HttpRequestLine;
 import my.chapter03.connector.SocketInputStream;
 import my.chapter03.entity.HttpRequest;
 import my.chapter03.entity.HttpResponse;
+import my.chapter03.util.RequestUtil;
 
 public class HttpProcessor {
 
@@ -50,7 +52,7 @@ public class HttpProcessor {
 	}
 
 	private void parseHeaders(SocketInputStream input) throws ServletException, IOException {
-		//一个循环读取一个head value对
+		// 一个循环读取一个head value对
 		while (true) {
 			HttpHeader header = new HttpHeader();
 			input.readHeader(header);
@@ -61,19 +63,29 @@ public class HttpProcessor {
 					throw new ServletException("httpProcessor.parseHeaders.colon");
 				}
 			}
-			
+
 			String name = new String(header.name, 0, header.nameEnd);
 			String value = new String(header.value, 0, header.valueEnd);
-			
+
 			request.addHeader(name, value);
-			
+
 			if (name.equals("cookie")) {
-				//TODO 填入处理cookie逻辑
+				Cookie[] cookies = RequestUtil.parseCookieHeader(value);
+				for (int i = 0; i < cookies.length; i++) {
+					if (cookies[i].getName().equals("jsessionid")) {
+						if (!request.isRequestedSessionIdFromCookie()) {
+							request.setRequestedSessionId(cookies[i].getValue());
+							request.setRequestedSessionURL(false);
+							request.setRequestedSessionCookie(true);
+						}
+					}
+					request.addCookie(cookies[i]);
+				}
 			} else if (name.equals("content-length")) {
 				int n = -1;
 				try {
 					n = Integer.parseInt(value);
-				}catch(NumberFormatException e) {
+				} catch (NumberFormatException e) {
 					e.printStackTrace();
 				}
 				request.setContentLength(n);

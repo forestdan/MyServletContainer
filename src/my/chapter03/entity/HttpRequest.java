@@ -40,10 +40,11 @@ public class HttpRequest implements HttpServletRequest{
 	private String protocol;
 	private String requestedSessionId;
 	private boolean requestedSessionURL;
+	private boolean requestedSessionCookie;
 	
 	protected HashMap<Object, Object> headers = new HashMap<>();
 	
-	protected ArrayList<Object> cookies = new ArrayList<>();
+	protected ArrayList<Cookie> cookies = new ArrayList<>();
 	
 	// 用于存放请求参数
 	protected ParameterMap parameters;
@@ -62,6 +63,19 @@ public class HttpRequest implements HttpServletRequest{
 			}
 			values.add(value);
 		}
+	}
+	
+	public void addCookie(Cookie cookie) {
+		synchronized (cookies) {
+			cookies.add(cookie);
+		}
+	}
+	public boolean isRequestedSessionCookie() {
+		return requestedSessionCookie;
+	}
+
+	public void setRequestedSessionCookie(boolean requestedSessionCookie) {
+		this.requestedSessionCookie = requestedSessionCookie;
 	}
 	
 	public void setContentType(String contentType) {
@@ -464,7 +478,6 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public boolean isRequestedSessionIdFromCookie() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
