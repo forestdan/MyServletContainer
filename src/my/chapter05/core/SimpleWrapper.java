@@ -24,26 +24,92 @@ import org.apache.catalina.Pipeline;
 import org.apache.catalina.Realm;
 import org.apache.catalina.Request;
 import org.apache.catalina.Response;
+import org.apache.catalina.Valve;
 import org.apache.catalina.Wrapper;
 
-public class SimpleWrapper implements Wrapper{
+public class SimpleWrapper implements Wrapper, Pipeline{
 
+	private Servlet instance;
+	private Loader loader;
+	protected Container parent;
+	private String servletClass;
+	
+	private Pipeline pipeline = new SimplePipeline(this);
+	
+	public SimpleWrapper() {
+		pipeline.setBasic(new SimpleWrapperValve());
+	}
+	
+	@Override
+	public Servlet allocate() throws ServletException {
+		if (instance == null) {
+			try {
+				instance = loadServlet();
+			}catch(ServletException e) {
+				throw new ServletException("Fail to load servlet");
+			}
+		}
+		return null;
+	}
+	
+	private Servlet loadServlet() throws ServletException{
+		if (instance != null) {
+			return instance;
+		}
+		Servlet servlet = null;
+		String actualClass = servletClass;
+		if (actualClass == null) {
+			throw new ServletException();
+		}
+		Loader loader = getLoader();
+		if (loader == null) {
+			throw new ServletException("No loader.");
+		}
+		ClassLoader classloader = loader.getClassLoader();
+		
+		Class clazz = null;
+		try {
+			if (classloader != null) {
+				clazz = classloader.loadClass(actualClass);
+			}
+		}catch(ClassNotFoundException e) {
+			throw new ServletException("Servlet class not found");
+		}
+		
+		try {
+			servlet = (Servlet) clazz.newInstance();
+		}catch(Exception e) {
+			throw new ServletException();
+		}
+		
+		try {
+			servlet.init(null);
+		}catch(ServletException e) {
+			throw new ServletException();
+		}
+		
+		return servlet;
+	}
+	
 	@Override
 	public String getInfo() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Loader getLoader() {
-		// TODO Auto-generated method stub
+		if (loader != null) {
+			return loader;
+		}
+		if (parent != null) {
+			return parent.getLoader();
+		}
 		return null;
 	}
 
 	@Override
 	public void setLoader(Loader loader) {
-		// TODO Auto-generated method stub
-		
+		this.loader = loader;
 	}
 
 	@Override
@@ -96,19 +162,16 @@ public class SimpleWrapper implements Wrapper{
 
 	@Override
 	public Container getParent() {
-		// TODO Auto-generated method stub
-		return null;
+		return parent;
 	}
 
 	@Override
 	public void setParent(Container container) {
-		// TODO Auto-generated method stub
-		
+		this.parent = container;
 	}
 
 	@Override
 	public ClassLoader getParentClassLoader() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -198,8 +261,7 @@ public class SimpleWrapper implements Wrapper{
 
 	@Override
 	public void invoke(Request request, Response response) throws IOException, ServletException {
-		// TODO Auto-generated method stub
-		
+		pipeline.invoke(request, response);
 	}
 
 	@Override
@@ -288,8 +350,7 @@ public class SimpleWrapper implements Wrapper{
 
 	@Override
 	public void setServletClass(String servletClass) {
-		// TODO Auto-generated method stub
-		
+		this.servletClass = servletClass;
 	}
 
 	@Override
@@ -316,11 +377,7 @@ public class SimpleWrapper implements Wrapper{
 		
 	}
 
-	@Override
-	public Servlet allocate() throws ServletException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 
 	@Override
 	public void deallocate(Servlet servlet) throws ServletException {
@@ -354,8 +411,7 @@ public class SimpleWrapper implements Wrapper{
 
 	@Override
 	public void load() throws ServletException {
-		// TODO Auto-generated method stub
-		
+		instance = loadServlet();
 	}
 
 	@Override
@@ -386,6 +442,31 @@ public class SimpleWrapper implements Wrapper{
 	public void unload() throws ServletException {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public Valve getBasic() {
+		return pipeline.getBasic();
+	}
+	
+	@Override
+	public void setBasic(Valve valve) {
+		pipeline.setBasic(valve);
+	}
+	
+	@Override
+	public void addValve(Valve valve) {
+		pipeline.addValve(valve);
+	}
+	
+	@Override
+	public Valve[] getValves() {
+		return pipeline.getValves();
+	}
+	
+	@Override
+	public void removeValve(Valve valve) {
+		pipeline.removeValve(valve);
 	}
 
 	
