@@ -1,5 +1,7 @@
 package my.chapter03.entity;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -10,16 +12,50 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 
+import my.socket.HttpServer;
+
 public class HttpResponse implements HttpServletResponse{
 
 	private OutputStream outputStream;
 
 	private HttpRequest request;
 	
+	private static int BUFFER_SIZE = 2048;
+	
 	public HttpResponse(OutputStream outputStream) {
 		this.outputStream = outputStream;
 	}
 
+	public void sendStaticResource() throws IOException{
+		byte[] bytes = new byte[BUFFER_SIZE];
+		FileInputStream fis = null;
+		try {
+			File file = new File(HttpServer.WEB_ROOT, request.getRequestURI());
+			if (file.exists()) {
+				fis = new FileInputStream(file);
+				@SuppressWarnings("unused")
+				int ch = 0;
+				while ((ch = fis.read(bytes, 0, BUFFER_SIZE)) != -1) {
+					outputStream.write(bytes, 0, BUFFER_SIZE);
+				}
+			}else {
+				String errorMessage = "HTTP/1.1 404 File Not Found\r\n" + 
+						"Content-Type: text/html\r\n" + 
+						"Content-Length: 23\r\n" + 
+						"\r\n" + 
+						"<h1>File Not Found</h1>";
+				outputStream.write(errorMessage.getBytes());
+				outputStream.flush();
+			}
+		}catch(IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fis != null) {
+				fis.close();
+			}
+		}
+	}
+	
 	public void setRequest(HttpRequest request) {
 		this.request = request;
 	}
@@ -43,12 +79,6 @@ public class HttpResponse implements HttpServletResponse{
 	}
 
 	@Override
-	public String getContentType() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Locale getLocale() {
 		// TODO Auto-generated method stub
 		return null;
@@ -62,8 +92,7 @@ public class HttpResponse implements HttpServletResponse{
 
 	@Override
 	public PrintWriter getWriter() throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		return new PrintWriter(outputStream);
 	}
 
 	@Override
@@ -91,19 +120,7 @@ public class HttpResponse implements HttpServletResponse{
 	}
 
 	@Override
-	public void setCharacterEncoding(String arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void setContentLength(int arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setContentLengthLong(long arg0) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -172,30 +189,6 @@ public class HttpResponse implements HttpServletResponse{
 	public String encodeUrl(String arg0) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public String getHeader(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<String> getHeaderNames() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<String> getHeaders(String arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getStatus() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 
 	@Override

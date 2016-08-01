@@ -43,7 +43,19 @@ public class HttpProcessor {
 			response.setHeader("Server", "Pyrmont Servlet Container");
 			parseRequest(is, os);
 			parseHeaders(is);
-
+			//check if this is a request for a servlet or a static resource
+		      //a request for a servlet begins with "/servlet/"
+		      if (request.getRequestURI().startsWith("/servlet/")) {
+		        ServletProcessor processor = new ServletProcessor();
+		        processor.process(request, response);
+		      }
+		      else {
+		        StaticResourceProcessor processor = new StaticResourceProcessor();
+		        processor.process(request, response);
+		      }
+		      // Close the socket
+		      socket.close();
+		      // no shutdown for this application
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ServletException e) {
@@ -120,7 +132,7 @@ public class HttpProcessor {
 			// 获取请求参数串(无请求参数)
 			request.setQueryString(null);
 			// 获取不含有参数的uri
-			uri = new String(requestLine.uri, 0, questionIndex);
+			uri = new String(requestLine.uri, 0, requestLine.uriEnd);
 		}
 
 		// 检查当uri是绝对路径的时候的情况 也就是请求报文中直接就是http://xxxxxx.com类似的情况

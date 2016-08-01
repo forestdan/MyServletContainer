@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -23,36 +21,40 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUpgradeHandler;
-import javax.servlet.http.Part;
 
 import org.apache.catalina.util.ParameterMap;
+import org.apache.catalina.util.RequestUtil;
 
 import my.chapter03.connector.SocketInputStream;
 
-public class HttpRequest implements HttpServletRequest{
+public class HttpRequest implements HttpServletRequest {
 
 	private int contentLength;
 	private String contentType;
-	
+
 	private String requestURI;
 	private String method;
 	private String protocol;
 	private String requestedSessionId;
 	private boolean requestedSessionURL;
 	private boolean requestedSessionCookie;
-	
+
+	/**
+	 * 当前这个请求对象的参数是否已经解析标志
+	 */
+	protected boolean parsed = false;
+
 	protected HashMap<Object, Object> headers = new HashMap<>();
-	
+
 	protected ArrayList<Cookie> cookies = new ArrayList<>();
-	
+
 	// 用于存放请求参数
 	protected ParameterMap parameters;
-	
+
 	private String queryString;
-	
+
 	private SocketInputStream socketInputStream;
-	
+
 	public void addHeader(String name, String value) {
 		name = name.toLowerCase();
 		synchronized (headers) {
@@ -64,12 +66,80 @@ public class HttpRequest implements HttpServletRequest{
 			values.add(value);
 		}
 	}
-	
+
 	public void addCookie(Cookie cookie) {
 		synchronized (cookies) {
 			cookies.add(cookie);
 		}
 	}
+
+	protected void parseParameters() {
+		if (parsed) {
+			return;
+		}
+		ParameterMap results = parameters;
+		if (null == results) {
+			results = new ParameterMap();
+		}
+		results.setLocked(false);
+		String encoding = getCharacterEncoding();
+		if (encoding == null) {
+			encoding = "UTF-8";
+		}
+		
+		String queryString = getQueryString();
+		//把queryString中的内容解析成参数 名/值对
+		try {
+			RequestUtil.parseParameters(results, queryString, encoding);
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		//获取请求中的contentType
+		String contentType = getContentType();
+		if (contentType == null) {
+			contentType = "";
+		}
+		int semicolon = contentType.indexOf(';');
+		if (semicolon >= 0) {
+			contentType = contentType.substring(0, semicolon).trim();
+		}else {
+			contentType = contentType.trim();
+		}
+		
+		//转换content里面的参数
+		if ("POST".equals(getMethod()) && getContentLength() > 0 && "application/x-www-form-urlencoded".equals(contentType)) {
+			try {
+				int max = getContentLength();
+				int len = 0;
+				byte[] buff = new byte[getContentLength()];
+				ServletInputStream is = getInputStream();
+				while (len < max) {
+					int next = is.read(buff, len, max - len);
+					if (next < 0) {
+						break;
+					}
+					len += next;
+				}
+				is.close();
+				
+				if (len < max) {
+					throw new RuntimeException("Content length mismatch");
+				}
+				
+				RequestUtil.parseParameters(results, buff, encoding);
+			}catch(IOException e) {
+				e.printStackTrace();
+			}catch(RuntimeException e) {
+				e.printStackTrace();
+			}
+			results.setLocked(true);
+			parsed = true;
+			parameters = results;
+		}
+	}
+
 	public boolean isRequestedSessionCookie() {
 		return requestedSessionCookie;
 	}
@@ -77,19 +147,19 @@ public class HttpRequest implements HttpServletRequest{
 	public void setRequestedSessionCookie(boolean requestedSessionCookie) {
 		this.requestedSessionCookie = requestedSessionCookie;
 	}
-	
+
 	public void setContentType(String contentType) {
 		this.contentType = contentType;
 	}
-	
+
 	public void setContentLength(int contentLength) {
 		this.contentLength = contentLength;
 	}
-	
+
 	public void setRequestURI(String requestURI) {
 		this.requestURI = requestURI;
 	}
-	
+
 	public void setMethod(String method) {
 		this.method = method;
 	}
@@ -113,15 +183,9 @@ public class HttpRequest implements HttpServletRequest{
 	public void setQueryString(String queryString) {
 		this.queryString = queryString;
 	}
-	
+
 	public HttpRequest(SocketInputStream socketInputStream) {
 		this.socketInputStream = socketInputStream;
-	}
-
-	@Override
-	public AsyncContext getAsyncContext() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -138,7 +202,6 @@ public class HttpRequest implements HttpServletRequest{
 
 	@Override
 	public String getCharacterEncoding() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -147,11 +210,6 @@ public class HttpRequest implements HttpServletRequest{
 		return contentLength;
 	}
 
-	@Override
-	public long getContentLengthLong() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
 	@Override
 	public String getContentType() {
@@ -159,33 +217,8 @@ public class HttpRequest implements HttpServletRequest{
 	}
 
 	@Override
-	public DispatcherType getDispatcherType() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public ServletInputStream getInputStream() throws IOException {
-		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public String getLocalAddr() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getLocalName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getLocalPort() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 
 	@Override
@@ -254,12 +287,6 @@ public class HttpRequest implements HttpServletRequest{
 	}
 
 	@Override
-	public int getRemotePort() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public RequestDispatcher getRequestDispatcher(String arg0) {
 		// TODO Auto-generated method stub
 		return null;
@@ -284,24 +311,6 @@ public class HttpRequest implements HttpServletRequest{
 	}
 
 	@Override
-	public ServletContext getServletContext() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean isAsyncStarted() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean isAsyncSupported() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public boolean isSecure() {
 		// TODO Auto-generated method stub
 		return false;
@@ -310,43 +319,19 @@ public class HttpRequest implements HttpServletRequest{
 	@Override
 	public void removeAttribute(String arg0) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void setAttribute(String arg0, Object arg1) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void setCharacterEncoding(String arg0) throws UnsupportedEncodingException {
 		// TODO Auto-generated method stub
-		
-	}
 
-	@Override
-	public AsyncContext startAsync() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public AsyncContext startAsync(ServletRequest arg0, ServletResponse arg1) throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean authenticate(HttpServletResponse arg0) throws IOException, ServletException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public String changeSessionId() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -400,18 +385,6 @@ public class HttpRequest implements HttpServletRequest{
 	@Override
 	public String getMethod() {
 		return this.method;
-	}
-
-	@Override
-	public Part getPart(String arg0) throws IOException, ServletException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<Part> getParts() throws IOException, ServletException {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -505,21 +478,4 @@ public class HttpRequest implements HttpServletRequest{
 		return false;
 	}
 
-	@Override
-	public void login(String arg0, String arg1) throws ServletException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void logout() throws ServletException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public <T extends HttpUpgradeHandler> T upgrade(Class<T> arg0) throws IOException, ServletException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

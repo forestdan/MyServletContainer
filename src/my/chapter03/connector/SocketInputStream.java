@@ -4,7 +4,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.catalina.tribes.util.StringManager;
+import org.apache.catalina.util.StringManager;
 
 /**
  * 此类在tomcat4之后就不存在了，自己实现
