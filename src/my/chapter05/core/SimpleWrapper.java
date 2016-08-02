@@ -27,14 +27,19 @@ import org.apache.catalina.Response;
 import org.apache.catalina.Valve;
 import org.apache.catalina.Wrapper;
 
+/**
+ * 可以看做是用来组装一个servlet的工具
+ * @author Administrator
+ *
+ */
 public class SimpleWrapper implements Wrapper, Pipeline{
 
 	private Servlet instance;
 	private Loader loader;
 	protected Container parent;
 	private String servletClass;
-	
 	private Pipeline pipeline = new SimplePipeline(this);
+	private String name;
 	
 	public SimpleWrapper() {
 		pipeline.setBasic(new SimpleWrapperValve());
@@ -49,7 +54,7 @@ public class SimpleWrapper implements Wrapper, Pipeline{
 				throw new ServletException("Fail to load servlet");
 			}
 		}
-		return null;
+		return instance;
 	}
 	
 	private Servlet loadServlet() throws ServletException{
@@ -150,14 +155,12 @@ public class SimpleWrapper implements Wrapper, Pipeline{
 
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
+		return name;
 	}
 
 	@Override
 	public void setName(String name) {
-		// TODO Auto-generated method stub
-		
+		this.name = name;
 	}
 
 	@Override

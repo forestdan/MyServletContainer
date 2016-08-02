@@ -62,7 +62,7 @@ public class SimpleWrapperValve implements Valve, Contained{
 				servlet.service(sreq, sresp);
 			}
 		}catch(ServletException e) {
-			
+			e.printStackTrace();
 		}
 	}
 

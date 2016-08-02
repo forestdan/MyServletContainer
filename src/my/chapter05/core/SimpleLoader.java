@@ -50,8 +50,7 @@ public class SimpleLoader implements Loader{
 
 	@Override
 	public ClassLoader getClassLoader() {
-		// TODO Auto-generated method stub
-		return null;
+		return classLoader;
 	}
 
 	@Override
