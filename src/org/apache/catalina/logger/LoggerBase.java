@@ -268,7 +268,7 @@ public abstract class LoggerBase
      */
     public void log(Exception exception, String msg) {
 
-        log(msg, exception);
+         log(msg, exception);
 
     }
 
