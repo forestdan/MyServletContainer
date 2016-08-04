@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.catalina.Contained;
 import org.apache.catalina.Container;
 import org.apache.catalina.Context;
+import org.apache.catalina.HttpRequest;
 import org.apache.catalina.Request;
 import org.apache.catalina.Response;
 import org.apache.catalina.Valve;
@@ -48,6 +49,7 @@ public class SimpleWrapperValve implements Valve, Contained{
 		ServletResponse sresp = response.getResponse();
 		Servlet servlet = null;
 		HttpServletRequest hsreq = null;
+		System.out.println(((HttpRequest) request).getDecodedRequestURI());
 		if (sreq instanceof HttpServletRequest) {
 			hsreq = (HttpServletRequest) sreq;
 		}
