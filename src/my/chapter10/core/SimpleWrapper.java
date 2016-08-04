@@ -110,6 +110,7 @@ public class SimpleWrapper implements Wrapper, Pipeline, Lifecycle{
 		if (loader != null) {
 			return loader;
 		}
+		//当Wrapper作为context的子容器时，其加载的loader就是context的loader
 		if (parent != null) {
 			return parent.getLoader();
 		}
