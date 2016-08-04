@@ -61,7 +61,7 @@ public class SimpleRealm implements Realm {
 		if (user == null) {
 			return null;
 		}
-		return new GenericPrincipal(this, user.userName, user.passWord);
+		return new GenericPrincipal(this, user.userName, user.passWord, user.getRoles());
 	}
 
 	private User getUser(String username, String credentials) {
@@ -98,6 +98,7 @@ public class SimpleRealm implements Realm {
 	public boolean hasRole(Principal principal, String role) {
 		if ((principal == null) || (role == null) || !(principal instanceof GenericPrincipal))
 			return false;
+		//Principal代表的是一个用户的验证信息，到达这里的时候说明已经通过了用户名和密码的认证，接下来就是身份的验证
 		GenericPrincipal gp = (GenericPrincipal) principal;
 		if (!(gp.getRealm() == this))
 			return false;
